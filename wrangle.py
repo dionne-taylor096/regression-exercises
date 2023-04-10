@@ -454,7 +454,7 @@ def split_data(df):
     y = df['assessed_property_value']
 
     # First, split the data into train (80%) and a temporary set (20%)
-    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.2, random_state=42)
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=42)
 
     # Next, split the temporary set into validate (10% of the original data) and test sets (10% of the original data)
     X_validate, X_test, y_validate, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=42)
@@ -637,7 +637,7 @@ def cv_evaluation(df):
     y = df['assessed_property_value']
 
     # Split your data into training and testing sets
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
 
     # Scale your features if necessary
     scaler = StandardScaler()
@@ -758,7 +758,14 @@ def model_eval(df, target_column):
 
     feature_columns = [col for col in df.columns if col != target_column]
 
-    X_train, X_test, y_train, y_test = train_test_split(df[feature_columns], df[target_column], test_size=0.2, random_state=42)
+    # Split the data into train (70%), validation (15%), and test (15%) sets
+    train, temp = train_test_split(df, test_size=0.3, random_state=42)
+    validate, test = train_test_split(temp, test_size=0.5, random_state=42)
+
+    # Separate the features and target for each dataset
+    X_train, y_train = train[feature_columns], train[target_column]
+    X_validate, y_validate = validate[feature_columns], validate[target_column]
+    X_test, y_test = test[feature_columns], test[target_column]
 
     models = [
         ('Linear Regression', LinearRegression()),
@@ -788,7 +795,52 @@ def model_eval(df, target_column):
 
     for name, model in models:
         model.fit(X_train, y_train)
-        score = model.score(X_test, y_test)
+        score = model.score(X_validate, y_validate)
+        if score > best_score:
+            best_score = score
+            best_model = (name, model)
+
+    print(f"Best Model: {best_model[0]}, R^2 score: {best_score:.3f}")
+
+   # for feature in feature_columns:
+        #sns.regplot(x=feature, y=target_column, data=df)
+        #plt.title(f"{feature} vs. {target_column}")
+        #plt.show()
+
+    p_values = get_p_values(X_train, y_train, best_model[1])
+    for feature, p_value in zip(feature_columns, p_values):
+        print(f"P>|t| for {feature}: {p_value:.3f}")
+        
+def model_evals(df_train, target_column, df_validation):
+    import numpy as np
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    import scipy.stats as stats
+    from sklearn.linear_model import LinearRegression, Lasso, Ridge, ElasticNet
+    from sklearn.tree import DecisionTreeRegressor
+    from sklearn.ensemble import RandomForestRegressor
+
+    feature_columns = [col for col in df_validation.columns if col != target_column]
+
+    # Use the validation set
+    X_val, y_val = df_validation[feature_columns], df_validation[target_column]
+
+    models = [
+        ('Linear Regression', LinearRegression()),
+        ('Lasso', Lasso()),
+        ('Ridge', Ridge()),
+        ('ElasticNet', ElasticNet()),
+        ('Decision Tree', DecisionTreeRegressor()),
+        ('Random Forest', RandomForestRegressor())
+    ]
+
+    best_model = None
+    best_score = -np.inf
+
+    for name, model in models:
+        model.fit(X_val, y_val)
+        score = model.score(X_val, y_val)  # Evaluate the model on the validation set
         if score > best_score:
             best_score = score
             best_model = (name, model)
@@ -796,13 +848,11 @@ def model_eval(df, target_column):
     print(f"Best Model: {best_model[0]}, R^2 score: {best_score:.3f}")
 
     for feature in feature_columns:
-        sns.regplot(x=feature, y=target_column, data=df)
+        sns.regplot(x=feature, y=target_column, data=df_validation)
         plt.title(f"{feature} vs. {target_column}")
         plt.show()
 
-    p_values = get_p_values(X_train, y_train, best_model[1])
-    for feature, p_value in zip(feature_columns, p_values):
-        print(f"P>|t| for {feature}: {p_value:.3f}")
+    # Note: get_p_values function is not included in this version, as it requires modifications to handle validation set correctly
 
         
 def model_interpretation(df, target_column, best_params):
@@ -852,7 +902,7 @@ def feature_importance_bar_chart(feature_importances):
 def model_validation(df, target_column):
     feature_columns = [col for col in df.columns if col != target_column]
 
-    X_train, X_test, y_train, y_test = train_test_split(df[feature_columns], df[target_column], test_size=0.2, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(df[feature_columns], df[target_column], test_size=0.3, random_state=42)
 
     models = [
         ('Linear Regression', LinearRegression()),
@@ -956,3 +1006,77 @@ def data_dict():
 
     data_dict_df = pd.DataFrame.from_dict(data_dict, orient='index', columns=['Description'])
     return data_dict_df
+
+def county_city_code_dict():
+    data = {
+        'county_6059': 'Orange',
+        'county_6111': 'Ventura',
+        'city_4406': 'Los Angeles',
+        'city_5465': 'Anaheim',
+        'city_5534': 'Brea',
+        'city_118994': 'Fullerton',
+        'city_118914': 'Long Beach',
+        'city_272578': 'Orange',
+        'city_396053': 'Santa Ana',
+        'city_396054': 'Tustin',
+        'city_396550': 'Ventura',
+        'city_396551': 'West Covina',
+        'city_396556': 'Yorba Linda'
+    }
+    
+    county_city_code_dict = pd.DataFrame(list(data.items()), columns=['Code', 'Name'])
+    return county_city_code_dict
+
+def split_and_evaluate_ols(df, target_column):
+    from sklearn.model_selection import train_test_split
+
+    # Split the data into train (70%), validation (15%), and test (15%) sets
+    train, temp = train_test_split(df, test_size=0.3, random_state=42)
+    validate, test = train_test_split(temp, test_size=0.5, random_state=42)
+
+    # Evaluate the OLS model
+    wrangle.evaluate_ols(train, validate, test, target_column)
+    
+    
+def evaluate_ols_with_splits(df, target_column):
+    # Split the data into train (70%), validation (15%), and test (15%) sets
+    train, temp = train_test_split(df, test_size=0.3, random_state=42)
+    validate, test = train_test_split(temp, test_size=0.5, random_state=42)
+
+
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score, mean_squared_error
+
+def evaluate_ols(train, validate, test, target_column):
+    feature_columns = [col for col in train.columns if col != target_column]
+
+    X_train, y_train = train[feature_columns], train[target_column]
+    X_validate, y_validate = validate[feature_columns], validate[target_column]
+    X_test, y_test = test[feature_columns], test[target_column]
+
+    model = LinearRegression()
+    model.fit(X_train, y_train)
+
+    def evaluate_set(name, X, y):
+        y_pred = model.predict(X)
+        r2 = r2_score(y, y_pred)
+        mse = mean_squared_error(y, y_pred)
+        print(f"{name} R^2 Score: {r2:.3f}")
+        print(f"{name} Mean Squared Error: {mse:.3f}")
+        return r2
+
+    train_r2 = evaluate_set("Train", X_train, y_train)
+    validate_r2 = evaluate_set("Validation", X_validate, y_validate)
+    test_r2 = evaluate_set("Test", X_test, y_test)
+
+    print(f"Difference in R^2 Scores:")
+    print(f"Train-Validation: {abs(train_r2 - validate_r2):.3f}")
+    print(f"Train-Test: {abs(train_r2 - test_r2):.3f}")
+    print(f"Validation-Test: {abs(validate_r2 - test_r2):.3f}")
+    
+def final_split_data(df, target_column):
+    # Split the data into train (70%), validation (15%), and test (15%) sets
+    train, temp = train_test_split(df, test_size=0.3, random_state=42)
+    validate, test = train_test_split(temp, test_size=0.5, random_state=42)
+
+    return train, validate, test
