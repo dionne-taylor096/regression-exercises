@@ -415,10 +415,10 @@ def define_X_y(df, target_col):
 def split_datasets(X, y):
     from sklearn.model_selection import train_test_split
 
-    # First, split the data into train (80%) and a temporary set (20%)
+    # split the data into train (80%) and a temporary set (20%)
     X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    # Next, split the temporary set into validate (10% of the original data) and test sets (10% of the original data)
+    # split the temporary set into validate (10% of the original data) and test sets (10% of the original data)
     X_validate, X_test, y_validate, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=42)
 
     return X_train, X_validate, X_test, y_train, y_validate, y_test
@@ -430,10 +430,10 @@ def split_dataset(df):
     X = df.drop(columns=['assessed_property_value_scaled'])
     y = df['assessed_property_value_scaled']
 
-    # First, split the data into train (80%) and a temporary set (20%)
+    # split the data into train (80%) and a temporary set (20%)
     X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    # Next, split the temporary set into validate (10% of the original data) and test sets (10% of the original data)
+    # split the temporary set into validate (10% of the original data) and test sets (10% of the original data)
     X_validate, X_test, y_validate, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=42)
 
     return X_train, X_validate, X_test, y_train, y_validate, y_test
@@ -453,10 +453,10 @@ def split_data(df):
     X = df.drop('assessed_property_value', axis=1)
     y = df['assessed_property_value']
 
-    # First, split the data into train (80%) and a temporary set (20%)
+    # split the data into train (80%) and a temporary set (20%)
     X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=42)
 
-    # Next, split the temporary set into validate (10% of the original data) and test sets (10% of the original data)
+    # split the temporary set into validate (10% of the original data) and test sets (10% of the original data)
     X_validate, X_test, y_validate, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=42)
 
     # Concatenate the split data back into DataFrames
@@ -639,7 +639,7 @@ def cv_evaluation(df):
     # Split your data into training and testing sets
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
 
-    # Scale your features if necessary
+    # Scale your features, if necessary
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
@@ -851,8 +851,6 @@ def model_evals(df_train, target_column, df_validation):
         sns.regplot(x=feature, y=target_column, data=df_validation)
         plt.title(f"{feature} vs. {target_column}")
         plt.show()
-
-    # Note: get_p_values function is not included in this version, as it requires modifications to handle validation set correctly
 
         
 def model_interpretation(df, target_column, best_params):
